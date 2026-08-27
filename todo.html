@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DO / DONE — a to-do list</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #E7E3D6;
+    --bg-tex: #DFDBCC;
+    --ink: #15150F;
+    --paper: #FFFDF8;
+    --red: #FF4B3E;
+    --yellow: #FFC53D;
+    --blue: #3D5AFE;
+    --green: #2BB673;
+    --pink: #FF7AC6;
+    --border: 3px;
+    --shadow-off: 7px;
+  }
+
+  *{ box-sizing: border-box; }
+
+  html,body{
+    margin:0;
+    padding:0;
+    min-height:100vh;
+    background:
+      radial-gradient(circle at 1px 1px, rgba(21,21,15,0.08) 1px, transparent 0) 0 0/18px 18px,
+      var(--bg);
+    font-family: 'Space Grotesk', sans-serif;
+    color: var(--ink);
+  }
+
+  ::selection{ background: var(--yellow); color: var(--ink); }
+
+  button{ font-family: inherit; }
+
+  /* focus visibility */
+  a:focus-visible, button:focus-visible, input:focus-visible, [tabindex]:focus-visible{
+    outline: 3px solid var(--blue);
+    outline-offset: 3px;
+  }
+
+  .wrap{
+    max-width: 640px;
+    margin: 0 auto;
+    padding: 48px 20px 80px;
+  }
+
+  /* ---------- HEADER / STAMP ---------- */
+  .stamp-row{
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap: 16px;
+    margin-bottom: 28px;
+  }
+
+  .stamp{
+    display:inline-block;
+    background: var(--ink);
+    color: var(--paper);
+    padding: 6px 14px;
+    font-family:'JetBrains Mono', monospace;
+    font-weight:700;
+    font-size: 12px;
+    letter-spacing: 0.12em;
+    transform: rotate(-2deg);
+    border: var(--border) solid var(--ink);
+  }
+
+  h1{
+    font-family: 'Archivo Black', sans-serif;
+    font-size: clamp(38px, 9vw, 58px);
+    line-height: 0.92;
+    margin: 10px 0 0;
+    letter-spacing: -0.01em;
+  }
+  h1 span{
+    display:inline-block;
+    position:relative;
+  }
+  h1 .slash{
+    color: var(--red);
+    -webkit-text-stroke: 2px var(--ink);
+  }
+
+  .date-badge{
+    font-family:'JetBrains Mono', monospace;
+    font-weight:700;
+    font-size: 13px;
+    background: var(--yellow);
+    border: var(--border) solid var(--ink);
+    padding: 8px 12px;
+    box-shadow: 4px 4px 0 var(--ink);
+    white-space: nowrap;
+    transform: rotate(2deg);
+  }
+
+  /* ---------- INPUT ROW ---------- */
+  .add-panel{
+    background: var(--paper);
+    border: var(--border) solid var(--ink);
+    box-shadow: var(--shadow-off) var(--shadow-off) 0 var(--ink);
+    padding: 16px;
+    margin-bottom: 28px;
+  }
+
+  .add-row{
+    display:flex;
+    gap: 10px;
+  }
+
+  #task-input{
+    flex:1;
+    min-width:0;
+    border: var(--border) solid var(--ink);
+    background: var(--bg);
+    padding: 14px 14px;
+    font-size: 16px;
+    font-weight: 600;
+    font-family: inherit;
+    color: var(--ink);
+  }
+  #task-input::placeholder{
+    color: #6b675a;
+    font-weight: 500;
+  }
+  #task-input:focus{
+    background: var(--paper);
+  }
+
+  .btn{
+    border: var(--border) solid var(--ink);
+    background: var(--ink);
+    color: var(--paper);
+    font-weight: 700;
+    font-size: 14px;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    padding: 14px 18px;
+    cursor: pointer;
+    box-shadow: 4px 4px 0 var(--ink);
+    transition: transform .08s ease, box-shadow .08s ease;
+    white-space: nowrap;
+  }
+  .btn:hover{ transform: translate(-1px,-1px); box-shadow: 5px 5px 0 var(--ink); }
+  .btn:active{ transform: translate(3px,3px); box-shadow: 0 0 0 var(--ink); }
+
+  .btn-add{ background: var(--red); border-color: var(--ink); }
+
+  .priority-row{
+    display:flex;
+    gap:8px;
+    margin-top: 12px;
+    flex-wrap: wrap;
+    align-items:center;
+  }
+  .priority-label{
+    font-family:'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-right: 4px;
+    color: #514F45;
+  }
+  .chip{
+    border: 2.5px solid var(--ink);
+    background: var(--paper);
+    padding: 6px 12px;
+    font-size: 12px;
+    font-weight: 700;
+    font-family:'JetBrains Mono', monospace;
+    text-transform: uppercase;
+    cursor: pointer;
+    letter-spacing: 0.04em;
+  }
+  .chip[data-p="low"].active{ background: var(--green); }
+  .chip[data-p="mid"].active{ background: var(--yellow); }
+  .chip[data-p="high"].active{ background: var(--red); color: var(--paper); }
+  .chip:not(.active):hover{ background: var(--bg-tex); }
+
+  /* ---------- SEARCH ---------- */
+  .search-panel{
+    position: relative;
+    margin-bottom: 18px;
+  }
+  .search-panel svg{
+    position:absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 18px;
+    height: 18px;
+    stroke: var(--ink);
+    stroke-width: 2.5;
+    fill:none;
+    pointer-events:none;
+  }
+  #search-input{
+    width: 100%;
+    border: var(--border) solid var(--ink);
+    background: var(--paper);
+    padding: 13px 40px 13px 42px;
+    font-size: 14px;
+    font-weight: 600;
+    font-family:'JetBrains Mono', monospace;
+    color: var(--ink);
+    box-shadow: 4px 4px 0 var(--ink);
+  }
+  #search-input::placeholder{ color: #6b675a; font-weight: 500; }
+  #search-input:focus{ background: var(--bg); }
+  .search-clear{
+    position:absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 22px;
+    height: 22px;
+    border: 2px solid var(--ink);
+    background: var(--yellow);
+    font-size: 12px;
+    font-weight: 800;
+    line-height: 1;
+    cursor: pointer;
+    display: none;
+    align-items:center;
+    justify-content:center;
+  }
+  .search-clear.show{ display:flex; }
+
+  /* ---------- FILTER TABS ---------- */
+  .filters{
+    display:flex;
+    gap: 10px;
+    margin-bottom: 22px;
+    flex-wrap: wrap;
+  }
+  .filter-btn{
+    border: var(--border) solid var(--ink);
+    background: var(--paper);
+    padding: 9px 16px;
+    font-weight: 700;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    cursor: pointer;
+    box-shadow: 3px 3px 0 var(--ink);
+  }
+  .filter-btn.active{
+    background: var(--blue);
+    color: var(--paper);
+    transform: translate(3px,3px);
+    box-shadow: 0 0 0 var(--ink);
+  }
+  .filter-btn:not(.active):hover{ background: var(--bg-tex); }
+
+  .count-tag{
+    margin-left:auto;
+    font-family:'JetBrains Mono', monospace;
+    font-size: 12px;
+    font-weight: 700;
+    background: var(--ink);
+    color: var(--paper);
+    padding: 9px 12px;
+    border: var(--border) solid var(--ink);
+  }
+
+  /* ---------- LIST ---------- */
+  #list{
+    list-style:none;
+    margin:0;
+    padding:0;
+    display:flex;
+    flex-direction:column;
+    gap: 16px;
+  }
+
+  .task{
+    position: relative;
+    background: var(--paper);
+    border: var(--border) solid var(--ink);
+    box-shadow: 6px 6px 0 var(--ink);
+    padding: 16px;
+    display:flex;
+    align-items:flex-start;
+    gap: 14px;
+    transform: rotate(var(--tilt, 0deg));
+    transition: transform .12s ease, box-shadow .12s ease, opacity .2s ease;
+    animation: drop .32s cubic-bezier(.2,.9,.3,1.2) both;
+  }
+  .task:nth-child(3n+1){ --tilt: -0.6deg; }
+  .task:nth-child(3n+2){ --tilt: 0.5deg; }
+  .task:nth-child(3n){ --tilt: -0.3deg; }
+
+  .task:hover{
+    transform: translate(-2px,-2px) rotate(0deg);
+    box-shadow: 8px 8px 0 var(--ink);
+  }
+
+  @keyframes drop{
+    from{ opacity: 0; transform: translateY(-14px) rotate(0deg) scale(.98); }
+    to{ opacity: 1; }
+  }
+
+  .task.removing{
+    animation: swipe .28s ease forwards;
+  }
+  @keyframes swipe{
+    to{ opacity:0; transform: translateX(40px) rotate(3deg) scale(.92); }
+  }
+
+  .checkbox{
+    flex: none;
+    width: 30px;
+    height: 30px;
+    border: var(--border) solid var(--ink);
+    background: var(--bg);
+    cursor: pointer;
+    position: relative;
+    margin-top: 2px;
+  }
+  .checkbox svg{
+    position:absolute;
+    inset: -3px;
+    width: 36px;
+    height: 36px;
+    stroke: var(--ink);
+    stroke-width: 4.5;
+    stroke-linecap: round;
+    fill:none;
+    opacity: 0;
+    transform: scale(.6);
+    transition: opacity .1s ease, transform .16s cubic-bezier(.3,1.4,.5,1);
+  }
+  .task.done .checkbox{ background: var(--green); }
+  .task.done .checkbox svg{ opacity:1; transform: scale(1); }
+
+  .task-body{ flex: 1; min-width: 0; }
+
+  .task-text{
+    font-weight: 600;
+    font-size: 16px;
+    line-height: 1.35;
+    word-break: break-word;
+    position: relative;
+    display:inline;
+  }
+  .task.done .task-text{
+    color: #7c7a6e;
+  }
+  .task.done .task-text::after{
+    content:"";
+    position:absolute;
+    left:-2px; right:-2px; top:50%;
+    height: 3px;
+    background: var(--ink);
+    transform: scaleX(0);
+    transform-origin: left;
+    animation: strike .22s ease forwards;
+  }
+  @keyframes strike{ to{ transform: scaleX(1); } }
+
+  .task-meta{
+    display:flex;
+    gap: 8px;
+    margin-top: 8px;
+    align-items:center;
+    flex-wrap: wrap;
+  }
+  .p-tag{
+    font-family:'JetBrains Mono', monospace;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 3px 8px;
+    border: 2px solid var(--ink);
+  }
+  .p-tag.low{ background: var(--green); }
+  .p-tag.mid{ background: var(--yellow); }
+  .p-tag.high{ background: var(--red); color: var(--paper); }
+
+  .timestamp{
+    font-family:'JetBrains Mono', monospace;
+    font-size: 10.5px;
+    color: #6b675a;
+  }
+
+  .delete-btn{
+    flex: none;
+    width: 30px;
+    height: 30px;
+    border: var(--border) solid var(--ink);
+    background: var(--paper);
+    cursor: pointer;
+    font-weight: 800;
+    font-size: 15px;
+    line-height: 1;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    transition: transform .08s ease, background .08s ease;
+  }
+  .delete-btn:hover{
+    background: var(--red);
+    color: var(--paper);
+    transform: rotate(90deg);
+  }
+
+  /* ---------- EMPTY STATE ---------- */
+  .empty{
+    border: var(--border) dashed var(--ink);
+    padding: 40px 20px;
+    text-align:center;
+    background: repeating-linear-gradient(135deg, var(--paper), var(--paper) 10px, #f2efe6 10px, #f2efe6 20px);
+  }
+  .empty-title{
+    font-family:'Archivo Black', sans-serif;
+    font-size: 20px;
+    margin-bottom: 6px;
+  }
+  .empty-sub{
+    font-size: 13px;
+    color: #514F45;
+    font-family:'JetBrains Mono', monospace;
+  }
+
+  /* ---------- FOOTER STRIP ---------- */
+  .footer-strip{
+    margin-top: 30px;
+    display:flex;
+    justify-content: space-between;
+    align-items:center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .clear-btn{
+    border: 2.5px solid var(--ink);
+    background: var(--pink);
+    padding: 9px 14px;
+    font-family:'JetBrains Mono', monospace;
+    font-weight: 700;
+    font-size: 11px;
+    text-transform: uppercase;
+    cursor: pointer;
+    box-shadow: 3px 3px 0 var(--ink);
+  }
+  .clear-btn:hover{ transform: translate(-1px,-1px); box-shadow: 4px 4px 0 var(--ink); }
+  .clear-btn:active{ transform: translate(3px,3px); box-shadow: 0 0 0 var(--ink); }
+
+  .progress-wrap{
+    flex: 1;
+    min-width: 180px;
+  }
+  .progress-label{
+    font-family:'JetBrains Mono', monospace;
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+    display:flex;
+    justify-content: space-between;
+  }
+  .progress-track{
+    height: 14px;
+    border: 2.5px solid var(--ink);
+    background: var(--paper);
+    overflow: hidden;
+  }
+  .progress-fill{
+    height: 100%;
+    background: repeating-linear-gradient(45deg, var(--yellow), var(--yellow) 8px, var(--ink) 8px, var(--ink) 9px);
+    background-color: var(--yellow);
+    width: 0%;
+    transition: width .3s ease;
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    *{ animation: none !important; transition: none !important; }
+  }
+
+  @media (max-width: 420px){
+    .add-row{ flex-direction: column; }
+    .stamp-row{ flex-direction: column-reverse; }
+    .date-badge{ align-self:flex-start; }
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <div class="stamp-row">
+    <div>
+      <span class="stamp">TASK LEDGER</span>
+      <h1>DO<span class="slash">/</span>DONE</h1>
+    </div>
+    <div class="date-badge" id="today-badge"></div>
+  </div>
+
+  <div class="add-panel">
+    <div class="add-row">
+      <input id="task-input" type="text" placeholder="What needs doing?" maxlength="140" autocomplete="off">
+      <button class="btn btn-add" id="add-btn">Add task</button>
+    </div>
+    <div class="priority-row" id="priority-row">
+      <span class="priority-label">Priority:</span>
+      <button class="chip" data-p="low">Low</button>
+      <button class="chip active" data-p="mid">Mid</button>
+      <button class="chip" data-p="high">High</button>
+    </div>
+  </div>
+
+  <div class="search-panel">
+    <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20 L16 16"/></svg>
+    <input id="search-input" type="text" placeholder="Search tasks..." maxlength="140" autocomplete="off">
+    <button class="search-clear" id="search-clear" aria-label="Clear search">✕</button>
+  </div>
+
+  <div class="filters" id="filters">
+    <button class="filter-btn active" data-filter="all">All</button>
+    <button class="filter-btn" data-filter="active">Active</button>
+    <button class="filter-btn" data-filter="done">Done</button>
+    <span class="count-tag" id="count-tag">0 left</span>
+  </div>
+
+  <ul id="list"></ul>
+
+  <div class="empty" id="empty-state" style="display:none;">
+    <div class="empty-title">NOTHING HERE.</div>
+    <div class="empty-sub">// add a task above to break the silence</div>
+  </div>
+
+  <div class="footer-strip">
+    <div class="progress-wrap">
+      <div class="progress-label"><span>Cleared</span><span id="progress-pct">0%</span></div>
+      <div class="progress-track"><div class="progress-fill" id="progress-fill"></div></div>
+    </div>
+    <button class="clear-btn" id="clear-done">Clear completed</button>
+  </div>
+
+</div>
+
+<script>
+(function(){
+  const STORAGE_KEY = 'neu-todo-tasks-v1';
+  const listEl = document.getElementById('list');
+  const inputEl = document.getElementById('task-input');
+  const addBtn = document.getElementById('add-btn');
+  const filtersEl = document.getElementById('filters');
+  const countTag = document.getElementById('count-tag');
+  const emptyState = document.getElementById('empty-state');
+  const clearDoneBtn = document.getElementById('clear-done');
+  const progressFill = document.getElementById('progress-fill');
+  const progressPct = document.getElementById('progress-pct');
+  const priorityRow = document.getElementById('priority-row');
+  const todayBadge = document.getElementById('today-badge');
+  const searchInput = document.getElementById('search-input');
+  const searchClear = document.getElementById('search-clear');
+
+  let tasks = [];
+  let filter = 'all';
+  let selectedPriority = 'mid';
+  let searchQuery = '';
+
+  function loadTasks(){
+    try{
+      const raw = localStorage.getItem(STORAGE_KEY);
+      tasks = raw ? JSON.parse(raw) : [];
+    }catch(e){ tasks = []; }
+  }
+  function saveTasks(){
+    try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks)); }catch(e){}
+  }
+
+  function setTodayBadge(){
+    const d = new Date();
+    const opts = { weekday:'short', month:'short', day:'numeric' };
+    todayBadge.textContent = d.toLocaleDateString(undefined, opts).toUpperCase();
+  }
+
+  function formatTime(ts){
+    const d = new Date(ts);
+    let h = d.getHours();
+    const m = String(d.getMinutes()).padStart(2,'0');
+    const ap = h >= 12 ? 'PM' : 'AM';
+    h = h % 12; if(h === 0) h = 12;
+    return h + ':' + m + ' ' + ap;
+  }
+
+  function uid(){
+    return 't' + Date.now().toString(36) + Math.random().toString(36).slice(2,7);
+  }
+
+  function addTask(text, priority){
+    const t = {
+      id: uid(),
+      text: text,
+      done: false,
+      priority: priority,
+      createdAt: Date.now()
+    };
+    tasks.unshift(t);
+    saveTasks();
+    render();
+  }
+
+  function toggleTask(id){
+    const t = tasks.find(x => x.id === id);
+    if(t){ t.done = !t.done; saveTasks(); render(); }
+  }
+
+  function removeTask(id, liEl){
+    if(liEl){
+      liEl.classList.add('removing');
+      liEl.addEventListener('animationend', () => {
+        tasks = tasks.filter(x => x.id !== id);
+        saveTasks();
+        render();
+      }, { once:true });
+    } else {
+      tasks = tasks.filter(x => x.id !== id);
+      saveTasks();
+      render();
+    }
+  }
+
+  function clearDone(){
+    tasks = tasks.filter(x => !x.done);
+    saveTasks();
+    render();
+  }
+
+  function priorityLabel(p){
+    return p === 'low' ? 'Low' : p === 'high' ? 'High' : 'Mid';
+  }
+
+  function render(){
+    const q = searchQuery.trim().toLowerCase();
+    const filtered = tasks.filter(t => {
+      if(filter === 'active' && t.done) return false;
+      if(filter === 'done' && !t.done) return false;
+      if(q && !t.text.toLowerCase().includes(q)) return false;
+      return true;
+    });
+
+    listEl.innerHTML = '';
+
+    if(filtered.length === 0){
+      emptyState.style.display = 'block';
+      const title = emptyState.querySelector('.empty-title');
+      const sub = emptyState.querySelector('.empty-sub');
+      if(q){
+        title.textContent = 'NO MATCHES.';
+        sub.textContent = '// nothing found for "' + searchQuery.trim() + '"';
+      } else {
+        title.textContent = 'NOTHING HERE.';
+        sub.textContent = '// add a task above to break the silence';
+      }
+    } else {
+      emptyState.style.display = 'none';
+      filtered.forEach(t => {
+        const li = document.createElement('li');
+        li.className = 'task' + (t.done ? ' done' : '');
+        li.dataset.id = t.id;
+
+        li.innerHTML = `
+          <button class="checkbox" aria-label="${t.done ? 'Mark as not done' : 'Mark as done'}" aria-pressed="${t.done}">
+            <svg viewBox="0 0 36 36"><path d="M8 19 L15 26 L28 10"/></svg>
+          </button>
+          <div class="task-body">
+            <span class="task-text"></span>
+            <div class="task-meta">
+              <span class="p-tag ${t.priority}">${priorityLabel(t.priority)}</span>
+              <span class="timestamp">${formatTime(t.createdAt)}</span>
+            </div>
+          </div>
+          <button class="delete-btn" aria-label="Delete task">✕</button>
+        `;
+        li.querySelector('.task-text').textContent = t.text;
+
+        li.querySelector('.checkbox').addEventListener('click', () => toggleTask(t.id));
+        li.querySelector('.delete-btn').addEventListener('click', () => removeTask(t.id, li));
+
+        listEl.appendChild(li);
+      });
+    }
+
+    const leftCount = tasks.filter(t => !t.done).length;
+    countTag.textContent = leftCount + (leftCount === 1 ? ' left' : ' left');
+
+    const total = tasks.length;
+    const doneCount = tasks.filter(t => t.done).length;
+    const pct = total === 0 ? 0 : Math.round((doneCount / total) * 100);
+    progressFill.style.width = pct + '%';
+    progressPct.textContent = pct + '%';
+  }
+
+  addBtn.addEventListener('click', () => {
+    const val = inputEl.value.trim();
+    if(!val) {
+      inputEl.style.borderColor = 'var(--red)';
+      inputEl.focus();
+      setTimeout(() => { inputEl.style.borderColor = 'var(--ink)'; }, 500);
+      return;
+    }
+    addTask(val, selectedPriority);
+    inputEl.value = '';
+    inputEl.focus();
+  });
+
+  inputEl.addEventListener('keydown', (e) => {
+    if(e.key === 'Enter') addBtn.click();
+  });
+
+  priorityRow.addEventListener('click', (e) => {
+    const chip = e.target.closest('.chip');
+    if(!chip) return;
+    priorityRow.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+    chip.classList.add('active');
+    selectedPriority = chip.dataset.p;
+  });
+
+  filtersEl.addEventListener('click', (e) => {
+    const btn = e.target.closest('.filter-btn');
+    if(!btn) return;
+    filtersEl.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    filter = btn.dataset.filter;
+    render();
+  });
+
+  clearDoneBtn.addEventListener('click', clearDone);
+
+  searchInput.addEventListener('input', () => {
+    searchQuery = searchInput.value;
+    searchClear.classList.toggle('show', searchQuery.length > 0);
+    render();
+  });
+
+  searchClear.addEventListener('click', () => {
+    searchInput.value = '';
+    searchQuery = '';
+    searchClear.classList.remove('show');
+    render();
+    searchInput.focus();
+  });
+
+  setTodayBadge();
+  loadTasks();
+  render();
+})();
+</script>
+
+</body>
+</html>
